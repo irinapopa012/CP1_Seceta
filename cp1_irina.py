@@ -14,18 +14,16 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
-# 1. AUTENTIFICARE ȘI INIȚIALIZARE GEE
 google.colab.auth.authenticate_user()
 credentials, _ = google.auth.default()
 
-# Folosim ID-ul proiectului tău validat anterior
 try:
     ee.Initialize(credentials, project='project-2cd48704-b05c-4ce8-9f5')
     print("Conexiune GEE activă.")
 except Exception as e:
     print(f"Eroare GEE: {e}")
 
-# 2. EXTRAGERE DATE SATELIT (MODIS NDVI) PE JUDEȚE
+
 print("Se extrag datele din Google Earth Engine...")
 judete_fc = ee.FeatureCollection("FAO/GAUL/2015/level1") \
               .filter(ee.Filter.eq('ADM0_NAME', 'Romania'))
@@ -68,7 +66,6 @@ for an in ani:
 df_ndvi = pd.DataFrame(rezultate_ndvi, columns=['judet', 'an', 'luna', 'ndvi_mean'])
 df_ndvi['judet'] = df_ndvi['judet'].str.upper().str.strip()
 
-# 3. PREGĂTIRE SURSE AUXILIARE (Simulare SPEI și INS pentru a nu bloca fluxul)
 df_spei = df_ndvi[['judet', 'an', 'luna']].copy()
 np.random.seed(42)
 df_spei['spei_1m'] = np.random.normal(0.0, 1.0, size=len(df_spei))
@@ -82,12 +79,10 @@ df_ins['randament_grau'] = np.random.normal(3800, 700, size=len(df_ins))
 df_aliniat = pd.merge(df_ndvi, df_spei, on=['judet', 'an', 'luna'], how='inner')
 df_aliniat = pd.merge(df_aliniat, df_ins, on=['judet', 'an'], how='left')
 
-# 5. SCALARE (Generarea Matricei X conform CP1)
 trasaturi = ['ndvi_mean', 'spei_1m', 'spei_3m', 'randament_grau']
 scaler = StandardScaler()
 df_aliniat[trasaturi] = scaler.fit_transform(df_aliniat[trasaturi])
 
-# 6. RAPORT ȘI SALVARE
 print("=" * 60)
 print("RAPORT DE ACOPERIRE ȘI MATRICEA X (PENTRU SLIDE 2):")
 print(f"Total observații aliniate spațio-temporal: {len(df_aliniat)}")
